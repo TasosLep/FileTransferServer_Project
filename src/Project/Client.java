@@ -14,6 +14,7 @@ public class Client {
     private ObjectOutputStream out;
     private Socket request_connection;
     private Scanner scanner;
+    private StringBuilder absolutepath = new StringBuilder();
 
     public void initializeClient(){
 
@@ -30,21 +31,35 @@ public class Client {
             String portNymber = scanner.next();
             int port = Integer.parseInt(portNymber.trim());
             request_connection = new Socket(ipAddress,port);
+                             /*           if(request_connection.isConnected()){
+                                            System.out.println("You may entered a wrong IP Address or a port of the Server\n");
+                                            initializeClient();
+                                        }*/
             //end of connecting to Server
 
             in = new ObjectInputStream(request_connection.getInputStream());
        //     out = new ObjectOutputStream(request_connection.getOutputStream());
 
             Object welcome = in.readObject();//Reading Welcoming
-            System.out.println(welcome);
+            System.out.println("\n" + welcome);
 
-
+            //file name & folder path
+            System.out.println("Give me the name of the file you want to transfer: ");
+            scanner = new Scanner(System.in);
+            String filename = scanner.next();
+            System.out.println("Give me the folder path of the file you want to transfer: ");
+            scanner = new Scanner(System.in);
+            String folder_path = scanner.next();
+            absolutepath.append(folder_path).append("\\").append(filename);
+            System.out.println(absolutepath.toString());
+            //end of file name & folder path
 
         }
         catch (UnknownHostException unknownHost) {
             System.err.println("You are trying to connect to an unknown host!");
         } catch (Exception ioException) {
-            ioException.printStackTrace();
+            System.err.println("Something went wrong!\n" + "You may entered a wrong IP Address or a port of the Server\n");
+            //ioException.printStackTrace();
         }
         finally {
             try {
@@ -55,6 +70,10 @@ public class Client {
                 e.printStackTrace();
             }
         }
+    }
+
+    public void statistics(){
+
     }
 
 

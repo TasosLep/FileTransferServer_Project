@@ -2,56 +2,42 @@ package Project;
 
 import java.io.*;
 import java.net.*;
-import java.util.Scanner;
 
-public class Client {
+public class Client
+{
 
     private DatagramSocket udpSocket;
-    private static final int MAXIMUM_BUFFER_SIZE = 512;
     private static InetAddress serverAddress;
-    private static int serverPort=0;
-    private static File filename;
-    private static String folderpath;
-    private  ObjectInputStream in;
-    private ObjectOutputStream out;
-    private Socket request_connection;
-    private Scanner scanner;
-    private StringBuilder absolutepath = new StringBuilder();
-    private static int ACK_NUM = 0;
-    private static int SYNC_NUM = 0;
+    private static int serverPort = 0;
     private FileOutputStream fileOut;
 
     private byte[] header;
     private byte[] payload;
     private byte[] packetBuf;
 
-    public void sendPacket(Byte[] payload)
+    private void takeHeader()
     {
-
-    }
-
-    private void takeHeader(byte[] packet)
-    {
-       for (int i = 0; i < header.length; i++)
-       {
-           //System.out.println(packet[i]);
-           header[i] = packet[i];
-       }
+        for (int i = 0; i < header.length; i++)
+            header[i] = packetBuf[i];
     }
 
     private void takePayload(DatagramPacket packet)
     {
+        // The payload length is the number of bytes read minus
+        // the number of the header length in bytes.
         payload = new byte[packet.getLength() - header.length];
         for (int i = 0; i < payload.length; i++)
-            payload[i] = packetBuf[i+header.length];
+            payload[i] = packetBuf[i + header.length];
     }
 
-    public void initializeClient(){
+    public void initializeClient()
+    {
 
         header = new byte[1];
         payload = new byte[60000];
         packetBuf = new byte[header.length + payload.length];
-        boolean flag = true, end = false;
+        boolean flag = true, end = false; // Flag is true when we receive a packet out of order.
+
         try
         {
             fileOut = new FileOutputStream("/home/marios/Desktop/test.mkv");
@@ -64,25 +50,29 @@ public class Client {
                     if (!flag)
                     {
                         fileOut.write(payload);
-                        packetId = (packetId+1)%2;
+                        packetId = (packetId + 1) % 2;
                     }
 
-                    DatagramPacket packet = new DatagramPacket(packetBuf,packetBuf.length);
-                    //udpSocket.setSoTimeout(2*1000);
+                    // Reveive the data packet from the server.
+                    DatagramPacket packet = new DatagramPacket(packetBuf, packetBuf.length);
                     udpSocket.receive(packet);
-                    takeHeader(packetBuf);
+                    takeHeader();
                     takePayload(packet);
-                    //System.out.println("end before: " + end);
+
+                    // If it is the end of the file we are done.
                     if (header[0] == 2)
                         end = true;
-                    flag = false;
-                    System.out.println("end after: " + end);
 
-                    //System.out.println(header[0] + " the client take");
+                    flag = false;
                     if (packetId != header[0])
+                    {
+                        System.out.printf("out of order\n");
                         flag = true;
-                    header[0] = (byte)packetId;
-                    packet = new DatagramPacket(header,header.length,serverAddress,serverPort);
+                    }
+
+                    // Send the acknowledgement to the server.
+                    header[0] = (byte) packetId;
+                    packet = new DatagramPacket(header, header.length, serverAddress, serverPort);
                     udpSocket.send(packet);
                 } catch (IOException ioe)
                 {
@@ -92,15 +82,13 @@ public class Client {
             }
 
 
-
-        }catch (SocketException se)
+        } catch (SocketException se)
         {
-            flag = false;
             System.out.println("SE");
-        }catch (IOException ioe)
+        } catch (IOException ioe)
         {
             System.out.println("IOE");
-        }finally
+        } finally
         {
             try
             {
@@ -112,7 +100,8 @@ public class Client {
         }
     }
 
-    public void statistics(){
+    public void statistics()
+    {
 
         System.out.println("The total time of the transfer was " + " sec");
         System.out.println("The speed of the transfer was " + " Kbyte/sec");
@@ -122,8 +111,8 @@ public class Client {
     }
 
 
-
-    public static void main(String args[]) throws UnknownHostException {
+    public static void main(String args[]) throws UnknownHostException
+    {
 
         /*if(args.length < 4 ) {
             System.out.println("Usage is: java Server -ip <server ip address> -p <server port>");

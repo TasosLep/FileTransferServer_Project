@@ -1,9 +1,7 @@
 package Project;
 
-import javax.xml.crypto.Data;
 import java.io.*;
 import java.net.*;
-import java.sql.SQLSyntaxErrorException;
 
 public class Server
 {
@@ -11,14 +9,25 @@ public class Server
     private int Port = 0;
     private FileInputStream fileIn;
     private DatagramSocket udpSocket;
+    byte[] header;
+    byte[] payload;
+    byte[] packetBuf;
 
-    private byte[] createPacketBuffer(byte[] header, byte[] payoload)
+    /**
+     * This method concatenates the header and the payload
+     * into a new packet.
+     *
+     * @param header  The header of the packet.
+     * @param payload The payload of the packet.
+     * @return The new packet.
+     */
+    private byte[] createPacketBuffer(byte[] header, byte[] payload)
     {
-        byte[] out = new byte[header.length + payoload.length];
+        byte[] out = new byte[header.length + payload.length];
         for (int i = 0; i < header.length; i++)
             out[i] = header[i];
-        for (int i = 0; i < payoload.length; i++)
-            out[i+header.length] = payoload[i];
+        for (int i = 0; i < payload.length; i++)
+            out[i + header.length] = payload[i];
         return out;
     }
 
@@ -30,13 +39,12 @@ public class Server
         {
             udpSocket = new DatagramSocket(7777);
             //int packetNum = 0;
-            boolean flag = false;
+            boolean flag = false; // This flag is true when we must send the same packet.
             fileIn = new FileInputStream(new File("/home/marios/Downloads/Blade.Runner.2049/Blade.Runner.2049.mkv"));
+            //fileIn = new FileInputStream(new File("/home/marios/Programming/cpp_prog/test.cpp"));
             boolean end = false;
-            byte[] header = new byte[1];
-
-            byte[] payload = new byte[60000];
-            byte[] buf;
+            header = new byte[1];
+            payload = new byte[60000];
             int packetId = -1;
 
             while (!end)
@@ -47,43 +55,50 @@ public class Server
                     {
                         int len = fileIn.read(payload);
                         if (len == -1)
-                        {
                             end = true;
-                        }else
+                        else
                         {
+                            // Adjust the payload length to the exact number of bytes
+                            // that were read from the file(always <= payload.length).
                             byte[] temp = new byte[len];
                             for (int i = 0; i < len; i++)
                                 temp[i] = payload[i];
                             payload = temp;
                         }
+                        // Increment the packet id(slide the window).
                         packetId = (packetId + 1) % 2;
                     }
+                    // We have a special header for the end of the file.
                     if (end)
                         header[0] = 2;
                     else
                         header[0] = (byte) packetId;
-                    //System.out.println(header[0] + " header we send");
-                    buf = createPacketBuffer(header, payload);
-                    DatagramPacket packet = new DatagramPacket(buf, buf.length, Address, Port);
+                    // Send the packet.
+                    packetBuf = createPacketBuffer(header, payload);
+                    DatagramPacket packet = new DatagramPacket(packetBuf, packetBuf.length, Address, Port);
                     udpSocket.send(packet);
+                    // Receive the acknowledgement(A header that contains the id of the packet we sent).
                     udpSocket.setSoTimeout(2 * 1000);
                     packet = new DatagramPacket(header, header.length);
                     udpSocket.receive(packet);
+                    // If no exception occured.
                     flag = false;
-                    //System.out.println(header[0] + " " + packetId);
+                    // Check the header.
                     if (header[0] != packetId)
-                    {
-
                         flag = true;
-                    }
+                    // Simulate packet loss.
+                    /*if (Math.random() < 0.5)
+                        flag = true;*/
 
                 } catch (SocketTimeoutException ste)
                 {
+                    // The timeout expired so we send the same packet.
                     flag = true;
                     System.out.println("Timeout");
                 } catch (IOException ioe)
                 {
                     System.out.println("IOE");
+                    ioe.printStackTrace();
 
                 }
             }

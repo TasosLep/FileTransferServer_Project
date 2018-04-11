@@ -1,64 +1,92 @@
 package Project;
 
-import com.sun.javafx.iio.ios.IosDescriptor;
-
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
+import javax.xml.crypto.Data;
+import java.io.*;
+import java.net.*;
 import java.sql.SQLSyntaxErrorException;
 
-public class Server {
+public class Server
+{
+    private  InetAddress Address;
+    private  int Port=0;
+    private FileInputStream fileIn;
+    private DatagramSocket udpSocket;
 
-    private ServerSocket serverSocket;
-    private ObjectInputStream in;
-    private ObjectOutputStream out;
+    public void initializeServer() throws UnknownHostException
+    {
+        Address = InetAddress.getByName("localhost");
+        Port = Integer.parseInt("7778");
 
-    public void initializeServer(){
+        try
+        {
+            udpSocket = new DatagramSocket(7777);
+            //int packetNum = 0;
+            boolean flag = false;
+            fileIn = new FileInputStream(new File("/home/marios/Programming/c_prog/test.c"));
+            int length = 5;
+            byte[] buf = new byte[length];
+            byte[] ack = new byte[1];
+            boolean end = false;
+            while (!end)
+            {
+                try
+                {
+                    if (!flag)
+                    {
+                        if (fileIn.read(buf) == -1)
+                        {
+                            for(int i = 0; i<buf.length; i++)
+                                buf[i] = 0;
+                            end = true;
+                            System.out.println("New data.");
+                        }
 
-        try {
-            serverSocket = new ServerSocket(666,1);
-            System.out.println("Server started...\n" + "Waiting for a Client\n");
+                        //flag = false;
+                    }
 
-        }
-        catch (IOException e){
-            System.out.println("Something went wrong when starting the server!");
-        }
+                    DatagramPacket packet = new DatagramPacket(buf, buf.length,Address,Port);
+                    udpSocket.send(packet);
+                    udpSocket.setSoTimeout(2 * 1000);
+                    packet = new DatagramPacket(ack,ack.length);
+                    udpSocket.receive(packet);
+                    flag = false;
+                    if (ack[0] != 1)
+                    {
+                        flag = true;
+                    }
 
-  //      while (true){
-            try {
-                Socket socket = serverSocket.accept();
-             //   in = new ObjectInputStream(socket.getInputStream());
-                out = new ObjectOutputStream(socket.getOutputStream());
-                System.out.println("We have a new client connection...\n");
-                out.writeObject("Welcome!");
-                out.flush();
+                } catch (SocketTimeoutException ste)
+                {
+                    flag = true;
+                    System.out.println("Timeout");
+                } catch (IOException ioe)
+                {
+                    System.out.println("IOE");
 
-
-            }
-            catch (IOException io){
-                System.out.println("Something went wrong with a client!");
-             //   break;
-            }
-
-            finally {
-                try {
-                    //    in.close();
-                    out.close();
-                    serverSocket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
                 }
             }
 
+        } catch (SocketException se)
+        {
+            System.out.println("SE");
 
-    //    }
+        }catch (FileNotFoundException fnfe)
+        {
+            System.out.println("FNFE");
 
+        }finally
+        {
+            try{
+                fileIn.close();
+            }catch (IOException ioe)
+            {
 
+            }
+        }
     }
 
-    public static void main(String args[]){
+    public static void main(String args[]) throws UnknownHostException
+    {
         new Server().initializeServer();
     }
 }

@@ -1,17 +1,12 @@
 package Project;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.UnknownHostException;
+import java.io.*;
+import java.net.*;
 import java.util.Scanner;
 
 public class Client {
 
+    private DatagramSocket udpSocket;
     private static final int MAXIMUM_BUFFER_SIZE = 512;
     private static InetAddress serverAddress;
     private static int serverPort=0;
@@ -25,74 +20,73 @@ public class Client {
     private StringBuilder absolutepath = new StringBuilder();
     private static int ACK_NUM = 0;
     private static int SYNC_NUM = 0;
+    private FileOutputStream fileOut;
+
+    public void sendPacket(Byte[] payload)
+    {
+
+    }
 
     public void initializeClient(){
+        int packetSize = 5;
+        boolean flag = true, end = false;
+        try
+        {
+            fileOut = new FileOutputStream("/home/marios/Desktop/test.c");
+            byte[] data = new byte[packetSize];
+            for (int i = 0; i < data.length; i++)
+                data[i] = 1;
+            byte[] ack = new byte[1];
+            udpSocket = new DatagramSocket(7778);
 
-        System.out.println("File Transfer Server platform!\n");
+            while (!end)
+            {
+                try
+                {
+                    if (!flag)
+                    {
+                        fileOut.write(data);
+                    }
 
-        try {
+                    DatagramPacket packet = new DatagramPacket(data,data.length);
+                    udpSocket.setSoTimeout(2*1000);
+                    udpSocket.receive(packet);
+                    end = true;
+                    for (int i = 0; i < data.length; i++)
+                        if (data[i] != 0)
+                            end = false;
+                    flag = false;
+                    ack[0] = 1;
+                    packet = new DatagramPacket(ack,ack.length,serverAddress,serverPort);
+                    udpSocket.send(packet);
+                }catch (SocketTimeoutException ste)
+                {
+                    flag = true;
+                    System.out.println("Timeout");
+                } catch (IOException ioe)
+                {
+                    System.out.println("IOE");
+                }
 
-            //connecting to Server
-            System.out.println("Give me the IP Address of the Server you want to connect: ");
-            scanner = new Scanner(System.in);
-            String ipAddress = scanner.next();
-            System.out.println("Give me the port of the Server you want to connect: ");
-            scanner = new Scanner(System.in);
-            String portNymber = scanner.next();
-            int port = Integer.parseInt(portNymber.trim());
-            request_connection = new Socket(ipAddress,port);
-                             /*           if(request_connection.isConnected()){
-                                            System.out.println("You may entered a wrong IP Address or a port of the Server\n");
-                                            initializeClient();
-                                        }*/
-            //end of connecting to Server
+            }
 
-            in = new ObjectInputStream(request_connection.getInputStream());
-       //     out = new ObjectOutputStream(request_connection.getOutputStream());
 
-            Object welcome = in.readObject();//Reading Welcoming
-            System.out.println("\n" + welcome);
 
-            //file name & folder path
-            System.out.println("Give me the name of the file you want to transfer: ");
-            scanner = new Scanner(System.in);
-            String filename = scanner.next();
-            System.out.println("Give me the folder path of the file you want to transfer: ");
-            scanner = new Scanner(System.in);
-            String folder_path = scanner.next();
-            absolutepath.append(folder_path).append("\\").append(filename);
-            System.out.println(absolutepath.toString());
-            //end of file name & folder path
+        }catch (SocketException se)
+        {
+            flag = false;
+            System.out.println("SE");
+        }catch (IOException ioe)
+        {
+            System.out.println("IOE");
+        }finally
+        {
+            try
+            {
+                fileOut.close();
+            } catch (IOException e)
+            {
 
-            //setting the payload
-            System.out.println("Give me the lenght of the payload: ");
-            scanner = new Scanner(System.in);
-            int payload_length = Integer.parseInt(scanner.next().trim());
-            //end of setting the payload
-
-            //finding the length of the file
-            File file = new File(absolutepath.toString());
-            double file_size = file.length();// in Bytes
-            //end of finding the length of the file
-
-            //3 way handshake
-
-            //end of 3 way handshake
-
-        }
-        catch (UnknownHostException unknownHost) {
-            System.err.println("You are trying to connect to an unknown host!");
-        } catch (Exception ioException) {
-            System.err.println("Something went wrong!\n" + "You may entered a wrong IP Address or a port of the Server\n");
-            //ioException.printStackTrace();
-        }
-        finally {
-            try {
-                in.close();
-             //   out.close();
-                request_connection.close();
-            } catch (IOException e) {
-                e.printStackTrace();
             }
         }
     }
@@ -110,7 +104,7 @@ public class Client {
 
     public static void main(String args[]) throws UnknownHostException {
 
-        if(args.length < 4 ) {
+        /*if(args.length < 4 ) {
             System.out.println("Usage is: java Server -ip <server ip address> -p <server port>");
             System.exit(0);
         }
@@ -158,8 +152,9 @@ public class Client {
         else{
             System.out.println("Usage is: java Server -ip <server ip address> -p <server port> -fn <filename> -fp <folderpath> -pl <payload> ");
             System.exit(0);
-        }
-        //    new Client().initializeClient();
-
+        }*/
+        serverAddress = InetAddress.getByName("localhost");
+        serverPort = Integer.parseInt("7777");
+        new Client().initializeClient();
     }
 }

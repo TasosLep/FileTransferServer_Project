@@ -7,51 +7,73 @@ import java.sql.SQLSyntaxErrorException;
 
 public class Server
 {
-    private  InetAddress Address;
-    private  int Port=0;
+    private InetAddress Address;
+    private int Port = 0;
     private FileInputStream fileIn;
     private DatagramSocket udpSocket;
+
+    private byte[] createPacketBuffer(byte[] header, byte[] payoload)
+    {
+        byte[] out = new byte[header.length + payoload.length];
+        for (int i = 0; i < header.length; i++)
+            out[i] = header[i];
+        for (int i = 0; i < payoload.length; i++)
+            out[i+header.length] = payoload[i];
+        return out;
+    }
 
     public void initializeServer() throws UnknownHostException
     {
         Address = InetAddress.getByName("localhost");
         Port = Integer.parseInt("7778");
-
         try
         {
             udpSocket = new DatagramSocket(7777);
             //int packetNum = 0;
             boolean flag = false;
-            fileIn = new FileInputStream(new File("/home/marios/Programming/c_prog/test.c"));
-            int length = 5;
-            byte[] buf = new byte[length];
-            byte[] ack = new byte[1];
+            fileIn = new FileInputStream(new File("/home/marios/Downloads/Blade.Runner.2049/Blade.Runner.2049.mkv"));
             boolean end = false;
+            byte[] header = new byte[1];
+
+            byte[] payload = new byte[60000];
+            byte[] buf;
+            int packetId = -1;
+
             while (!end)
             {
                 try
                 {
                     if (!flag)
                     {
-                        if (fileIn.read(buf) == -1)
+                        int len = fileIn.read(payload);
+                        if (len == -1)
                         {
-                            for(int i = 0; i<buf.length; i++)
-                                buf[i] = 0;
                             end = true;
-                            System.out.println("New data.");
+                        }else
+                        {
+                            byte[] temp = new byte[len];
+                            for (int i = 0; i < len; i++)
+                                temp[i] = payload[i];
+                            payload = temp;
                         }
-
-                        //flag = false;
+                        packetId = (packetId + 1) % 2;
                     }
-
-                    DatagramPacket packet = new DatagramPacket(buf, buf.length,Address,Port);
+                    if (end)
+                        header[0] = 2;
+                    else
+                        header[0] = (byte) packetId;
+                    //System.out.println(header[0] + " header we send");
+                    buf = createPacketBuffer(header, payload);
+                    DatagramPacket packet = new DatagramPacket(buf, buf.length, Address, Port);
                     udpSocket.send(packet);
                     udpSocket.setSoTimeout(2 * 1000);
-                    packet = new DatagramPacket(ack,ack.length);
+                    packet = new DatagramPacket(header, header.length);
                     udpSocket.receive(packet);
                     flag = false;
-                    if (ack[0] != 1)
+                    //System.out.println(header[0] + " " + packetId);
+                    if (header[0] != packetId)
                     {
+
                         flag = true;
                     }
 
@@ -70,15 +92,16 @@ public class Server
         {
             System.out.println("SE");
 
-        }catch (FileNotFoundException fnfe)
+        } catch (FileNotFoundException fnfe)
         {
             System.out.println("FNFE");
 
-        }finally
+        } finally
         {
-            try{
+            try
+            {
                 fileIn.close();
-            }catch (IOException ioe)
+            } catch (IOException ioe)
             {
 
             }

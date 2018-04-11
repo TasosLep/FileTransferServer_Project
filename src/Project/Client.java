@@ -12,7 +12,6 @@ public class Client {
     private static int serverPort=0;
     private static File filename;
     private static String folderpath;
-    private static int payload;
     private  ObjectInputStream in;
     private ObjectOutputStream out;
     private Socket request_connection;
@@ -22,47 +21,69 @@ public class Client {
     private static int SYNC_NUM = 0;
     private FileOutputStream fileOut;
 
+    private byte[] header;
+    private byte[] payload;
+    private byte[] packetBuf;
+
     public void sendPacket(Byte[] payload)
     {
 
     }
 
+    private void takeHeader(byte[] packet)
+    {
+       for (int i = 0; i < header.length; i++)
+       {
+           //System.out.println(packet[i]);
+           header[i] = packet[i];
+       }
+    }
+
+    private void takePayload(DatagramPacket packet)
+    {
+        payload = new byte[packet.getLength() - header.length];
+        for (int i = 0; i < payload.length; i++)
+            payload[i] = packetBuf[i+header.length];
+    }
+
     public void initializeClient(){
-        int packetSize = 5;
+
+        header = new byte[1];
+        payload = new byte[60000];
+        packetBuf = new byte[header.length + payload.length];
         boolean flag = true, end = false;
         try
         {
-            fileOut = new FileOutputStream("/home/marios/Desktop/test.c");
-            byte[] data = new byte[packetSize];
-            for (int i = 0; i < data.length; i++)
-                data[i] = 1;
-            byte[] ack = new byte[1];
+            fileOut = new FileOutputStream("/home/marios/Desktop/test.mkv");
             udpSocket = new DatagramSocket(7778);
-
+            int packetId = 0;
             while (!end)
             {
                 try
                 {
                     if (!flag)
                     {
-                        fileOut.write(data);
+                        fileOut.write(payload);
+                        packetId = (packetId+1)%2;
                     }
 
-                    DatagramPacket packet = new DatagramPacket(data,data.length);
-                    udpSocket.setSoTimeout(2*1000);
+                    DatagramPacket packet = new DatagramPacket(packetBuf,packetBuf.length);
+                    //udpSocket.setSoTimeout(2*1000);
                     udpSocket.receive(packet);
-                    end = true;
-                    for (int i = 0; i < data.length; i++)
-                        if (data[i] != 0)
-                            end = false;
+                    takeHeader(packetBuf);
+                    takePayload(packet);
+                    //System.out.println("end before: " + end);
+                    if (header[0] == 2)
+                        end = true;
                     flag = false;
-                    ack[0] = 1;
-                    packet = new DatagramPacket(ack,ack.length,serverAddress,serverPort);
+                    System.out.println("end after: " + end);
+
+                    //System.out.println(header[0] + " the client take");
+                    if (packetId != header[0])
+                        flag = true;
+                    header[0] = (byte)packetId;
+                    packet = new DatagramPacket(header,header.length,serverAddress,serverPort);
                     udpSocket.send(packet);
-                }catch (SocketTimeoutException ste)
-                {
-                    flag = true;
-                    System.out.println("Timeout");
                 } catch (IOException ioe)
                 {
                     System.out.println("IOE");

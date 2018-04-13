@@ -12,6 +12,9 @@ public class Client
     private static int serverPort = 0;          // The server's port
     private FileOutputStream fileOut;           // An output stream to write data
     private DatagramPacket packet;
+    private String path = "E:\\Users\\tasos\\DownloadsNew\\readme.txt";
+    private String folderpath;
+    private int payload_length;
 
     private byte[] header;
     private byte[] payload;
@@ -30,6 +33,26 @@ public class Client
         payload = new byte[packet.getLength() - header.length];
         for (int i = 0; i < payload.length; i++)
             payload[i] = packetBuf[i + header.length];
+    }
+
+    private byte[] createPacketBuffer(byte[] header, byte[] payload)
+    {
+        // Create the new packet with size the total of the payload and its header
+        byte[] out = new byte[header.length + payload.length];
+        // Insert the header at the beginning of the new packet
+        for (int i = 0; i < header.length; i++)
+            out[i] = header[i];
+        // Insert the payload after the header
+        for (int i = 0; i < payload.length; i++)
+            out[i + header.length] = payload[i];
+        return out;
+    }
+
+    public void sendPacket() throws IOException
+    {
+        packetBuf = createPacketBuffer(header, payload);
+        packet = new DatagramPacket(packetBuf, packetBuf.length, serverAddress, serverPort);
+        udpSocket.send(packet);
     }
 
     public void sendAck() throws IOException
@@ -52,22 +75,22 @@ public class Client
         }
     }
 
-    public void initializeClient()
-    {
+    public void initializeClient() throws IOException {
 
         header = new byte[1];
         payload = new byte[60000];
         packetBuf = new byte[header.length + payload.length];
         boolean flag = true, end = false; // Flag is true when we receive a packet out of order.
-
         try
         {
             // Initialize the output stream to write the data to the new file
-            fileOut = new FileOutputStream("D:/Users/Kostas/Desktop/test.mp4");
+            fileOut = new FileOutputStream("E:\\Users\\tasos\\Desktop\\aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.txt");
             //fileOut = new FileOutputStream("/home/marios/Desktop/test.mkv");
 
             // Create a datagram socket and connect it to the local client machine port
             udpSocket = new DatagramSocket(7778);
+            initiateHandshake();
+
 
             int packetId = 0;
 
@@ -129,6 +152,22 @@ public class Client
         }
     }
 
+    private void initiateHandshake() throws IOException {
+
+   //     int lenght;
+        header = new byte[1];
+        header[0] = 7;
+      //  lenght = path.getBytes("UTF-8").length;
+    //    payload = new byte[lenght];
+   //     sendPacket();
+        payload = path.getBytes("UTF-8");
+        System.out.print(payload.length);
+        sendPacket();
+
+
+
+    }
+
     public void statistics()
     {
 
@@ -140,7 +179,7 @@ public class Client
     }
 
 
-    public static void main(String args[]) throws UnknownHostException
+    public static void main(String args[]) throws IOException
     {
 
         /*if(args.length < 4 ) {
@@ -185,7 +224,7 @@ public class Client
                 serverPort = Integer.parseInt(args[3].trim());
                 filename = new File(args[5]);
                 folderpath = args[7];
-                payload = Integer.parseInt(args[9].trim());
+                payload_length = Integer.parseInt(args[9].trim());
             }
         }
         else{

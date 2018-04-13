@@ -13,6 +13,8 @@ public class Server
     byte[] header;
     byte[] payload;
     byte[] packetBuf;
+    private DatagramPacket packet;
+    private String path = "";
     private boolean flag; // This flag is true when we must send the same packet.
 
     /**
@@ -36,10 +38,26 @@ public class Server
         return out;
     }
 
+    private void takeHeader()
+    {
+        for (int i = 0; i < header.length; i++)
+            header[i] = packetBuf[i];
+    }
+
+    private void takePayload(DatagramPacket packet)
+    {
+        /*The payload length is the number of bytes read minus
+        the number of the header length in bytes*/
+        payload = new byte[packet.getLength() - header.length];
+        for (int i = 0; i < payload.length; i++)
+            payload[i] = packetBuf[i + header.length];
+    }
+
+
     public void sendPacket() throws IOException
     {
         packetBuf = createPacketBuffer(header, payload);
-        DatagramPacket packet = new DatagramPacket(packetBuf, packetBuf.length, Address, Port);
+        packet = new DatagramPacket(packetBuf, packetBuf.length, Address, Port);
         udpSocket.send(packet);
     }
 
@@ -48,7 +66,7 @@ public class Server
         try
         {
             udpSocket.setSoTimeout(sec * 1000);
-            DatagramPacket packet = new DatagramPacket(header, header.length);
+            packet = new DatagramPacket(header, header.length);
             udpSocket.receive(packet);
         }catch (SocketTimeoutException ste)
         {
@@ -65,6 +83,7 @@ public class Server
 
     public void initializeServer() throws UnknownHostException
     {
+
         // Provide the complete address of the destination of the datagram packet
         Address = InetAddress.getByName("localhost");
         Port = Integer.parseInt("7778");
@@ -72,9 +91,11 @@ public class Server
         {
             // Create the DatagramSocket through which the server will communicate with the client
             udpSocket = new DatagramSocket(7777);
+            initiateandshake();
+
             //int packetNum = 0;
             //boolean flag = false;
-            fileIn = new FileInputStream(new File("/home/marios/Downloads/Blade.Runner.2049/Blade.Runner.2049.mkv"));
+            fileIn = new FileInputStream(new File("E:\\Users\\tasos\\DownloadsNew\\readme.txt"));
             //fileIn = new FileInputStream(new File("/home/marios/Programming/cpp_prog/test.cpp"));
             boolean end = false;
             header = new byte[1];
@@ -155,6 +176,19 @@ public class Server
 
             }
         }
+    }
+
+    private void initiateandshake() {
+
+    //    recvPacket(2);
+
+        recvPacket(2);
+        Address = packet.getAddress();
+        Port = packet.getPort();
+        takeHeader();
+        takePayload(packet);
+        path = new String(payload,0,payload.length);
+        System.out.print(path);
     }
 
     public static void main(String args[]) throws UnknownHostException

@@ -73,7 +73,9 @@ public class Client
 
                     flag = false;
 
-                    if (packetId != header[0])
+
+
+                    if (!end && packetId != header[0])
                     {
                         System.out.printf("out of order\n");
                         flag = true;

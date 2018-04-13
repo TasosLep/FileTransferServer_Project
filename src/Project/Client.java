@@ -8,6 +8,7 @@ public class Client
 
     private DatagramSocket udpSocket;
     private static InetAddress serverAddress;
+    private DatagramPacket packet;
     private static int serverPort = 0;
     private FileOutputStream fileOut;
 
@@ -28,6 +29,26 @@ public class Client
         payload = new byte[packet.getLength() - header.length];
         for (int i = 0; i < payload.length; i++)
             payload[i] = packetBuf[i + header.length];
+    }
+
+    public void sendAck() throws IOException
+    {
+        packet = new DatagramPacket(header, header.length, serverAddress, serverPort);
+        udpSocket.send(packet);
+    }
+
+    public void recvPacket()
+    {
+        try
+        {
+            packet = new DatagramPacket(packetBuf, packetBuf.length);
+            udpSocket.receive(packet);
+        }catch (IOException ioe)
+        {
+            System.out.println("IOE");
+            ioe.printStackTrace();
+
+        }
     }
 
     public void initializeClient()
@@ -54,8 +75,7 @@ public class Client
                     }
 
                     // Reveive the data packet from the server.
-                    DatagramPacket packet = new DatagramPacket(packetBuf, packetBuf.length);
-                    udpSocket.receive(packet);
+                    recvPacket();
                     takeHeader();
                     takePayload(packet);
 
@@ -72,8 +92,7 @@ public class Client
 
                     // Send the acknowledgement to the server.
                     header[0] = (byte) packetId;
-                    packet = new DatagramPacket(header, header.length, serverAddress, serverPort);
-                    udpSocket.send(packet);
+                    sendAck();
                 } catch (IOException ioe)
                 {
                     System.out.println("IOE");

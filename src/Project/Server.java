@@ -5,15 +5,15 @@ import java.net.*;
 
 public class Server
 {
+    // The complete address of the destination of the datagram packet
     private InetAddress Address;
     private int Port = 0;
     private FileInputStream fileIn;
     private DatagramSocket udpSocket;
-    private byte[] header;
-    private byte[] payload;
-    private byte[] packetBuf;
+    byte[] header;
+    byte[] payload;
+    byte[] packetBuf;
     private boolean flag; // This flag is true when we must send the same packet.
-
 
     /**
      * This method concatenates the header and the payload
@@ -25,9 +25,12 @@ public class Server
      */
     private byte[] createPacketBuffer(byte[] header, byte[] payload)
     {
+        // Create the new packet with size the total of the payload and its header
         byte[] out = new byte[header.length + payload.length];
+        // Insert the header at the beginning of the new packet
         for (int i = 0; i < header.length; i++)
             out[i] = header[i];
+        // Insert the payload after the header
         for (int i = 0; i < payload.length; i++)
             out[i + header.length] = payload[i];
         return out;
@@ -62,10 +65,12 @@ public class Server
 
     public void initializeServer() throws UnknownHostException
     {
+        // Provide the complete address of the destination of the datagram packet
         Address = InetAddress.getByName("localhost");
         Port = Integer.parseInt("7778");
         try
         {
+            // Create the DatagramSocket through which the server will communicate with the client
             udpSocket = new DatagramSocket(7777);
             //int packetNum = 0;
             //boolean flag = false;
@@ -76,32 +81,33 @@ public class Server
             payload = new byte[60000];
             int packetId = -1;
 
-            while (!end)
+            while (!end)    // While the end of the file has not been reached
             {
                 try
                 {
-                    if (!flag)
+                    if (!flag)  // If we do not need to retransmit the packet
                     {
                         int len = fileIn.read(payload);
-                        if (len == -1)
-                            end = true;
+                        if (len == -1)  // If there is no data because the end of the file has been reached
+                            end = true; // Tell it to the client
                         else
                         {
-                            // Adjust the payload length to the exact number of bytes
-                            // that were read from the file(always <= payload.length).
+                            /*Adjust the payload length to the exact number of bytes
+                            that were read from the file(always <= payload.length)*/
                             byte[] temp = new byte[len];
                             for (int i = 0; i < len; i++)
                                 temp[i] = payload[i];
                             payload = temp;
                         }
-                        // Increment the packet id(slide the window).
+                        // Increment the packet id(slide the window)
                         packetId = (packetId + 1) % 2;
                     }
                     // We have a special header for the end of the file.
                     if (end)
-                        header[0] = 2;
+                        header[0] = 2;  // The client will not recognise it as a packet
                     else
                         header[0] = (byte) packetId;
+
                     // Send the packet.
                     /*packetBuf = createPacketBuffer(header, payload);
                     DatagramPacket packet = new DatagramPacket(packetBuf, packetBuf.length, Address, Port);
@@ -130,11 +136,11 @@ public class Server
 
                 }
             }
-
+        // If the socket cannot be opened or cannot be bound to the specific port
         } catch (SocketException se)
         {
             System.out.println("SE");
-
+        // If the attempt to open the file has failed
         } catch (FileNotFoundException fnfe)
         {
             System.out.println("FNFE");

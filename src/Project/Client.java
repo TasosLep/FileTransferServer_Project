@@ -6,11 +6,12 @@ import java.net.*;
 public class Client
 {
 
-    private DatagramSocket udpSocket;
-    private static InetAddress serverAddress;
+    /* Declarations */
+    private DatagramSocket udpSocket;           // The DatagramSocket through which the server communicates with all of its clients
+    private static InetAddress serverAddress;   // The server's IP address
+    private static int serverPort = 0;          // The server's port
+    private FileOutputStream fileOut;           // An output stream to write data
     private DatagramPacket packet;
-    private static int serverPort = 0;
-    private FileOutputStream fileOut;
 
     private byte[] header;
     private byte[] payload;
@@ -24,8 +25,8 @@ public class Client
 
     private void takePayload(DatagramPacket packet)
     {
-        // The payload length is the number of bytes read minus
-        // the number of the header length in bytes.
+        /*The payload length is the number of bytes read minus
+        the number of the header length in bytes*/
         payload = new byte[packet.getLength() - header.length];
         for (int i = 0; i < payload.length; i++)
             payload[i] = packetBuf[i + header.length];
@@ -61,16 +62,22 @@ public class Client
 
         try
         {
-            fileOut = new FileOutputStream("/home/marios/Desktop/test.mkv");
+            // Initialize the output stream to write the data to the new file
+            fileOut = new FileOutputStream("D:/Users/Kostas/Desktop/test.mp4");
+            //fileOut = new FileOutputStream("/home/marios/Desktop/test.mkv");
+
+            // Create a datagram socket and connect it to the local client machine port
             udpSocket = new DatagramSocket(7778);
+
             int packetId = 0;
+
             while (!end)
             {
                 try
                 {
-                    if (!flag)
+                    if (!flag)  // If all packets are received in order
                     {
-                        fileOut.write(payload);
+                        fileOut.write(payload); // Write payload.length bytes from the payload array to fileOut
                         packetId = (packetId + 1) % 2;
                     }
 
@@ -79,18 +86,19 @@ public class Client
                     takeHeader();
                     takePayload(packet);
 
-                    // If it is the end of the file we are done.
+                    // If it is the end of the file we are done
                     if (header[0] == 2)
                         end = true;
 
                     flag = false;
+
                     if (packetId != header[0])
                     {
                         System.out.printf("out of order\n");
                         flag = true;
                     }
 
-                    // Send the acknowledgement to the server.
+                    // Send the acknowledgement to the server
                     header[0] = (byte) packetId;
                     sendAck();
                 } catch (IOException ioe)

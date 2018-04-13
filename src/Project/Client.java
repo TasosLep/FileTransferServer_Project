@@ -6,10 +6,11 @@ import java.net.*;
 public class Client
 {
 
-    private DatagramSocket udpSocket;
-    private static InetAddress serverAddress;
-    private static int serverPort = 0;
-    private FileOutputStream fileOut;
+    /* Declarations */
+    private DatagramSocket udpSocket;           // The DatagramSocket through which the server communicates with all of its clients
+    private static InetAddress serverAddress;   // The server's IP address
+    private static int serverPort = 0;          // The server's port
+    private FileOutputStream fileOut;           // An output stream to write data
 
     private byte[] header;
     private byte[] payload;
@@ -23,12 +24,13 @@ public class Client
 
     private void takePayload(DatagramPacket packet)
     {
-        // The payload length is the number of bytes read minus
-        // the number of the header length in bytes.
+        /*The payload length is the number of bytes read minus
+        the number of the header length in bytes*/
         payload = new byte[packet.getLength() - header.length];
         for (int i = 0; i < payload.length; i++)
             payload[i] = packetBuf[i + header.length];
     }
+
 
     public void initializeClient()
     {
@@ -36,41 +38,48 @@ public class Client
         header = new byte[1];
         payload = new byte[60000];
         packetBuf = new byte[header.length + payload.length];
-        boolean flag = true, end = false; // Flag is true when we receive a packet out of order.
+        boolean flag = true, end = false; // Flag is true when we receive a packet out of order
 
         try
         {
-            fileOut = new FileOutputStream("/home/marios/Desktop/test.mkv");
+            // Initialize the output stream to write the data to the new file
+            fileOut = new FileOutputStream("D:/Users/Kostas/Desktop/test.mp4");
+            //fileOut = new FileOutputStream("/home/marios/Desktop/test.mkv");
+
+            // Create a datagram socket and connect it to the local client machine port
             udpSocket = new DatagramSocket(7778);
+
             int packetId = 0;
+
             while (!end)
             {
                 try
                 {
-                    if (!flag)
+                    if (!flag)  // If all packets are received in order
                     {
-                        fileOut.write(payload);
+                        fileOut.write(payload); // Write payload.length bytes from the payload array to fileOut
                         packetId = (packetId + 1) % 2;
                     }
 
-                    // Reveive the data packet from the server.
+                    // Receive the data packet from the server
                     DatagramPacket packet = new DatagramPacket(packetBuf, packetBuf.length);
                     udpSocket.receive(packet);
                     takeHeader();
                     takePayload(packet);
 
-                    // If it is the end of the file we are done.
+                    // If it is the end of the file we are done
                     if (header[0] == 2)
                         end = true;
 
                     flag = false;
+
                     if (packetId != header[0])
                     {
                         System.out.printf("out of order\n");
                         flag = true;
                     }
 
-                    // Send the acknowledgement to the server.
+                    // Send the acknowledgement to the server
                     header[0] = (byte) packetId;
                     packet = new DatagramPacket(header, header.length, serverAddress, serverPort);
                     udpSocket.send(packet);
@@ -81,7 +90,7 @@ public class Client
 
             }
 
-
+        // If the socket cannot be opened or cannot be bound to the specific port
         } catch (SocketException se)
         {
             System.out.println("SE");

@@ -8,12 +8,12 @@ public class Server
     // The complete address of the destination of the datagram packet
     private InetAddress Address;
     private int Port = 0;
-
-    private FileInputStream fileIn;     // An input stream to read data
-    private DatagramSocket udpSocket;   // The DatagramSocket through which the server communicates with all of its clients
-    byte[] header;      //
-    byte[] payload;     //
-    byte[] packetBuf;   //
+    private FileInputStream fileIn;
+    private DatagramSocket udpSocket;
+    byte[] header;
+    byte[] payload;
+    byte[] packetBuf;
+    private boolean flag; // This flag is true when we must send the same packet.
 
     /**
      * This method concatenates the header and the payload
@@ -36,21 +36,45 @@ public class Server
         return out;
     }
 
+    public void sendPacket() throws IOException
+    {
+        packetBuf = createPacketBuffer(header, payload);
+        DatagramPacket packet = new DatagramPacket(packetBuf, packetBuf.length, Address, Port);
+        udpSocket.send(packet);
+    }
+
+    public void recvPacket(int sec)
+    {
+        try
+        {
+            udpSocket.setSoTimeout(sec * 1000);
+            DatagramPacket packet = new DatagramPacket(header, header.length);
+            udpSocket.receive(packet);
+        }catch (SocketTimeoutException ste)
+        {
+            // The timeout expired so we send the same packet.
+            flag = true;
+            System.out.println("Timeout");
+        }catch (IOException ioe)
+        {
+            System.out.println("IOE");
+            ioe.printStackTrace();
+
+        }
+    }
+
     public void initializeServer() throws UnknownHostException
     {
         // Provide the complete address of the destination of the datagram packet
         Address = InetAddress.getByName("localhost");
         Port = Integer.parseInt("7778");
-
         try
         {
             // Create the DatagramSocket through which the server will communicate with the client
             udpSocket = new DatagramSocket(7777);
-
             //int packetNum = 0;
-            boolean flag = false; // This flag is true when we must send the same packet
-            fileIn = new FileInputStream(new File("D:/Users/Kostas/Downloads/Mr Robot Season 3 Mp4 1080p/Mr Robot S03E01.mp4"));
-            //fileIn = new FileInputStream(new File("/home/marios/Downloads/Blade.Runner.2049/Blade.Runner.2049.mkv"));
+            //boolean flag = false;
+            fileIn = new FileInputStream(new File("/home/marios/Downloads/Blade.Runner.2049/Blade.Runner.2049.mkv"));
             //fileIn = new FileInputStream(new File("/home/marios/Programming/cpp_prog/test.cpp"));
             boolean end = false;
             header = new byte[1];
@@ -85,13 +109,12 @@ public class Server
                         header[0] = (byte) packetId;
 
                     // Send the packet.
-                    packetBuf = createPacketBuffer(header, payload);
+                    /*packetBuf = createPacketBuffer(header, payload);
                     DatagramPacket packet = new DatagramPacket(packetBuf, packetBuf.length, Address, Port);
-                    udpSocket.send(packet);
+                    udpSocket.send(packet);*/
+                    sendPacket();
                     // Receive the acknowledgement(A header that contains the id of the packet we sent).
-                    udpSocket.setSoTimeout(2 * 1000);
-                    packet = new DatagramPacket(header, header.length);
-                    udpSocket.receive(packet);
+                    recvPacket(2);
                     // If no exception occured.
                     flag = false;
                     // Check the header.
@@ -101,12 +124,12 @@ public class Server
                     /*if (Math.random() < 0.5)
                         flag = true;*/
 
-                } catch (SocketTimeoutException ste)
+                } /*catch (SocketTimeoutException ste)
                 {
                     // The timeout expired so we send the same packet.
                     flag = true;
                     System.out.println("Timeout");
-                } catch (IOException ioe)
+                }*/ catch (IOException ioe)
                 {
                     System.out.println("IOE");
                     ioe.printStackTrace();

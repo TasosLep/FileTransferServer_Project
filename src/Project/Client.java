@@ -11,6 +11,7 @@ public class Client
     private static InetAddress serverAddress;   // The server's IP address
     private static int serverPort = 0;          // The server's port
     private FileOutputStream fileOut;           // An output stream to write data
+    private DatagramPacket packet;
 
     private byte[] header;
     private byte[] payload;
@@ -31,6 +32,25 @@ public class Client
             payload[i] = packetBuf[i + header.length];
     }
 
+    public void sendAck() throws IOException
+    {
+        packet = new DatagramPacket(header, header.length, serverAddress, serverPort);
+        udpSocket.send(packet);
+    }
+
+    public void recvPacket()
+    {
+        try
+        {
+            packet = new DatagramPacket(packetBuf, packetBuf.length);
+            udpSocket.receive(packet);
+        }catch (IOException ioe)
+        {
+            System.out.println("IOE");
+            ioe.printStackTrace();
+
+        }
+    }
 
     public void initializeClient()
     {
@@ -38,7 +58,7 @@ public class Client
         header = new byte[1];
         payload = new byte[60000];
         packetBuf = new byte[header.length + payload.length];
-        boolean flag = true, end = false; // Flag is true when we receive a packet out of order
+        boolean flag = true, end = false; // Flag is true when we receive a packet out of order.
 
         try
         {
@@ -61,9 +81,8 @@ public class Client
                         packetId = (packetId + 1) % 2;
                     }
 
-                    // Receive the data packet from the server
-                    DatagramPacket packet = new DatagramPacket(packetBuf, packetBuf.length);
-                    udpSocket.receive(packet);
+                    // Reveive the data packet from the server.
+                    recvPacket();
                     takeHeader();
                     takePayload(packet);
 
@@ -83,8 +102,7 @@ public class Client
 
                     // Send the acknowledgement to the server
                     header[0] = (byte) packetId;
-                    packet = new DatagramPacket(header, header.length, serverAddress, serverPort);
-                    udpSocket.send(packet);
+                    sendAck();
                 } catch (IOException ioe)
                 {
                     System.out.println("IOE");
@@ -92,7 +110,7 @@ public class Client
 
             }
 
-        // If the socket cannot be opened or cannot be bound to the specific port
+
         } catch (SocketException se)
         {
             System.out.println("SE");

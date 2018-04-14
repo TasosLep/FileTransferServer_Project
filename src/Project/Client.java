@@ -2,6 +2,9 @@ package Project;
 
 import java.io.*;
 import java.net.*;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public class Client
 {
@@ -14,7 +17,7 @@ public class Client
     private DatagramPacket packet;
     private String path = "E:\\Users\\tasos\\DownloadsNew\\readme.txt";
     private String folderpath;
-    private int payload_length;
+    private int payload_length = 60000;
 
     private byte[] header;
     private byte[] payload;
@@ -51,6 +54,7 @@ public class Client
     public void sendPacket() throws IOException
     {
         packetBuf = createPacketBuffer(header, payload);
+        packetBuf = path.getBytes();
         packet = new DatagramPacket(packetBuf, packetBuf.length, serverAddress, serverPort);
         udpSocket.send(packet);
     }
@@ -75,22 +79,39 @@ public class Client
         }
     }
 
+    public void recvPacket_withoutTimeOut()
+    {
+        try
+        {
+            packetBuf = createPacketBuffer(header, payload);
+            packet = new DatagramPacket(packetBuf, packetBuf.length);
+            udpSocket.receive(packet);
+        }catch (SocketTimeoutException ste)
+        {
+            // The timeout expired so we send the same packet.
+            System.out.println("Timeout");
+        }catch (IOException ioe)
+        {
+            System.out.println("IOE");
+            ioe.printStackTrace();
+        }
+    }
+
     public void initializeClient() throws IOException {
 
         header = new byte[1];
-        payload = new byte[60000];
+        payload = new byte[1000];
         packetBuf = new byte[header.length + payload.length];
         boolean flag = true, end = false; // Flag is true when we receive a packet out of order.
-        try
-        {
+        try {
             // Initialize the output stream to write the data to the new file
-            fileOut = new FileOutputStream("E:\\Users\\tasos\\Desktop\\aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.txt");
+            fileOut = new FileOutputStream("C:\\Users\\tasos\\Desktop\\aaaaaaaaaek.txt");
             //fileOut = new FileOutputStream("/home/marios/Desktop/test.mkv");
 
             // Create a datagram socket and connect it to the local client machine port
             udpSocket = new DatagramSocket(7778);
-            initiateHandshake();
 
+            initiateHandshake();
 
             int packetId = 0;
 
@@ -133,7 +154,6 @@ public class Client
 
             }
 
-
         } catch (SocketException se)
         {
             System.out.println("SE");
@@ -154,18 +174,40 @@ public class Client
 
     private void initiateHandshake() throws IOException {
 
-   //     int lenght;
+        //sending folder path name and filename
         header = new byte[1];
         header[0] = 7;
-      //  lenght = path.getBytes("UTF-8").length;
-    //    payload = new byte[lenght];
-   //     sendPacket();
-        payload = path.getBytes("UTF-8");
+        payload = path.getBytes(StandardCharsets.UTF_8);
         System.out.print(payload.length);
         sendPacket();
+        //end of sending folder path name and filename
 
 
+        //sending payload length
+        header = new byte[1];
+        header[0] = 7;
+        ByteBuffer b = ByteBuffer.allocate(payload_length);
+        b.putInt(payload_length);
+        payload =  b.array();
 
+        String s = StandardCharsets.UTF_8.decode(b).toString();
+        System.out.print("\naaaaaek" + s );
+        sendPacket();
+        //end of sending payload length
+
+
+        //recieving the welcome message
+        header = new byte[1];
+        header[0] = 8;
+        payload = new byte[60000];
+
+        recvPacket_withoutTimeOut();
+        takeHeader();
+        takePayload(packet);
+
+        path = new String(packet.getData(),0, packet.getLength());
+        System.out.print("\n" + path);
+        //end of recieving the welcome message
     }
 
     public void statistics()

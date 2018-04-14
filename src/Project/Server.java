@@ -1,7 +1,11 @@
 package Project;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.net.*;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public class Server
 {
@@ -13,6 +17,7 @@ public class Server
     byte[] header;
     byte[] payload;
     byte[] packetBuf;
+    private static int payload_length = 60000;
     private DatagramPacket packet;
     private String path = "";
     private boolean flag; // This flag is true when we must send the same packet.
@@ -44,13 +49,18 @@ public class Server
             header[i] = packetBuf[i];
     }
 
-    private void takePayload(DatagramPacket packet)
-    {
+    private void takePayload(DatagramPacket packet) throws UnsupportedEncodingException {
         /*The payload length is the number of bytes read minus
         the number of the header length in bytes*/
+  //      String aaa = new String(payload,"UTF-8");
+    //    System.out.println("takePayload1   " + "\npath is  " + aaa + "\n");
         payload = new byte[packet.getLength() - header.length];
+  //       aaa = new String(payload,"UTF-8");
+  //      System.out.println("takePayload1   " + "\npath is  " + aaa + "\n");
         for (int i = 0; i < payload.length; i++)
             payload[i] = packetBuf[i + header.length];
+ //       aaa = new String(payload,"UTF-8");
+  //      System.out.println("takePayload1   " + "\npath is  " + aaa + "\n");
     }
 
 
@@ -61,12 +71,12 @@ public class Server
         udpSocket.send(packet);
     }
 
-    public void recvPacket(int sec)
+    public void recvPacket_withoutTimeOut()
     {
         try
         {
-            udpSocket.setSoTimeout(sec * 1000);
-            packet = new DatagramPacket(header, header.length);
+            packetBuf = createPacketBuffer(header, payload);
+            packet = new DatagramPacket(packetBuf, packetBuf.length);
             udpSocket.receive(packet);
         }catch (SocketTimeoutException ste)
         {
@@ -77,7 +87,47 @@ public class Server
         {
             System.out.println("IOE");
             ioe.printStackTrace();
+        }
+    }
 
+    public void recvPacket(int sec)
+    {
+        try
+        {
+            udpSocket.setSoTimeout(sec * 1000);
+            packetBuf = createPacketBuffer(header, payload);
+            packet = new DatagramPacket(header, header.length);
+            udpSocket.receive(packet);
+
+        }catch (SocketTimeoutException ste)
+        {
+            // The timeout expired so we send the same packet.
+            flag = true;
+            System.out.println("Timeout");
+        }catch (IOException ioe)
+        {
+            System.out.println("IOE");
+            ioe.printStackTrace();
+        }
+    }
+
+    public void recvACK(int sec)
+    {
+        try
+        {
+            udpSocket.setSoTimeout(sec * 1000);
+            packet = new DatagramPacket(header, header.length);
+            udpSocket.receive(packet);
+
+        }catch (SocketTimeoutException ste)
+        {
+            // The timeout expired so we send the same packet.
+            flag = true;
+            System.out.println("Timeout");
+        }catch (IOException ioe)
+        {
+            System.out.println("IOE");
+            ioe.printStackTrace();
         }
     }
 
@@ -89,9 +139,11 @@ public class Server
         Port = Integer.parseInt("7778");
         try
         {
+            System.out.println("Server started!");
             // Create the DatagramSocket through which the server will communicate with the client
             udpSocket = new DatagramSocket(7777);
-            initiateandshake();
+
+            initiateHandshake();
 
             //int packetNum = 0;
             //boolean flag = false;
@@ -135,7 +187,7 @@ public class Server
                     udpSocket.send(packet);*/
                     sendPacket();
                     // Receive the acknowledgement(A header that contains the id of the packet we sent).
-                    recvPacket(2);
+                    recvACK(2);
                     // If no exception occured.
                     flag = false;
                     // Check the header.
@@ -166,6 +218,10 @@ public class Server
         {
             System.out.println("FNFE");
 
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         } finally
         {
             try
@@ -178,17 +234,43 @@ public class Server
         }
     }
 
-    private void initiateandshake() {
+    private void initiateHandshake() throws IOException {
 
-    //    recvPacket(2);
+        System.out.println("\nWaiting for a client!");
 
-        recvPacket(2);
-        Address = packet.getAddress();
-        Port = packet.getPort();
+        header = new byte[1];
+        header[0] = 8;
+        payload = new byte[60000];
+
+        recvPacket_withoutTimeOut();
         takeHeader();
         takePayload(packet);
-        path = new String(payload,0,payload.length);
-        System.out.print(path);
+
+        path = new String(packet.getData(),0, packet.getLength()) + " from : ";
+        System.out.print("\n " + path);
+
+
+        //recieving payload length from the user
+        header = new byte[1];
+        header[0] = 8;
+        payload = new byte[60000];
+        recvPacket_withoutTimeOut();
+        takeHeader();
+        takePayload(packet);
+        String nm = new String(packet.getData(),0, packet.getLength()) + " ,from address: ";
+        int number = Integer.parseInt(nm.trim());
+        System.out.print("final    " + nm  +  "   " + number);
+        //end of recieving payload length from the user
+
+        //send welcome message
+        header = new byte[1];
+        header[0] = 8;
+        String welcome = "Welcome! \n";
+        payload = path.getBytes(StandardCharsets.UTF_8);
+        System.out.print(payload.length);
+        sendPacket();
+        //end of welcome message
+
     }
 
     public static void main(String args[]) throws UnknownHostException

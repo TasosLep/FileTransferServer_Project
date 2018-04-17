@@ -17,7 +17,7 @@ public class Server
     byte[] header;
     byte[] payload;
     byte[] packetBuf;
-    private static int payload_length = 60000;
+    private static int payload_length;
     private DatagramPacket packet;
     private String path = "";
     private boolean flag; // This flag is true when we must send the same packet.
@@ -76,12 +76,13 @@ public class Server
         try
         {
             packetBuf = createPacketBuffer(header, payload);
+          //  packetBuf = path.getBytes();
             packet = new DatagramPacket(packetBuf, packetBuf.length);
             udpSocket.receive(packet);
         }catch (SocketTimeoutException ste)
         {
             // The timeout expired so we send the same packet.
-            flag = true;
+       //     flag = true;
             System.out.println("Timeout");
         }catch (IOException ioe)
         {
@@ -144,14 +145,15 @@ public class Server
             udpSocket = new DatagramSocket(7777);
 
             initiateHandshake();
+            System.out.println("\n" + path);
 
             //int packetNum = 0;
             //boolean flag = false;
-            fileIn = new FileInputStream(new File("E:\\Users\\tasos\\DownloadsNew\\readme.txt"));
+            fileIn = new FileInputStream(new File(path));
             //fileIn = new FileInputStream(new File("/home/marios/Programming/cpp_prog/test.cpp"));
             boolean end = false;
             header = new byte[1];
-            payload = new byte[60000];
+            payload = new byte[payload_length];
             int packetId = -1;
 
             while (!end)    // While the end of the file has not been reached
@@ -212,7 +214,7 @@ public class Server
         // If the socket cannot be opened or cannot be bound to the specific port
         } catch (SocketException se)
         {
-            System.out.println("SE");
+            System.out.println("We couldn't find a Server");
         // If the attempt to open the file has failed
         } catch (FileNotFoundException fnfe)
         {
@@ -226,10 +228,11 @@ public class Server
         {
             try
             {
+        //        System.out.print("Whyyy???");
                 fileIn.close();
             } catch (IOException ioe)
             {
-
+                ioe.printStackTrace();
             }
         }
     }
@@ -239,35 +242,51 @@ public class Server
         System.out.println("\nWaiting for a client!");
 
         header = new byte[1];
-        header[0] = 8;
+       // header[0] = 8;
         payload = new byte[60000];
 
         recvPacket_withoutTimeOut();
         takeHeader();
         takePayload(packet);
 
-        path = new String(packet.getData(),0, packet.getLength()) + " from : ";
-        System.out.print("\n " + path);
+        if (header[0] == 7) {
+        //    path = new String(packet.getData(), 0, packet.getLength()) + " from : ";
 
+            path = new String(packet.getData(), 1, packet.getLength()) + " from : ";
+            path = path.trim();
+            String temp = new String(packet.getData(),"UTF-8");
+            System.out.print("\n " + path);
+
+        }
+
+        packet = null;
 
         //recieving payload length from the user
         header = new byte[1];
-        header[0] = 8;
+ //       header[0] = 8;
         payload = new byte[60000];
+
         recvPacket_withoutTimeOut();
         takeHeader();
         takePayload(packet);
-        String nm = new String(packet.getData(),0, packet.getLength()) + " ,from address: ";
-        int number = Integer.parseInt(nm.trim());
-        System.out.print("final    " + nm  +  "   " + number);
+        if (header[0] == 8) {
+            //   System.out.println(packet.getLength() + " why\n");
+            String paylen = new String(packet.getData(), 0, packet.getLength());
+            //   System.out.print("whaaaaaaaaaaaaaaat? " + paylen);
+            int number = Integer.parseInt(paylen.trim());
+            System.out.print("\n  " + number);
+            payload_length = number;
+        }
         //end of recieving payload length from the user
+
 
         //send welcome message
         header = new byte[1];
-        header[0] = 8;
-        String welcome = "Welcome! \n";
-        payload = path.getBytes(StandardCharsets.UTF_8);
-        System.out.print(payload.length);
+        header[0] = 9;
+        payload = new byte[60000];
+        String welcome = "Welcome!";
+        payload = welcome.getBytes(StandardCharsets.UTF_8);
+     //   System.out.print("\n"+payload.length+"\n");
         sendPacket();
         //end of welcome message
 

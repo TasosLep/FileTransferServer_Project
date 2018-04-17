@@ -17,7 +17,7 @@ public class Client
     private DatagramPacket packet;
     private String path = "E:\\Users\\tasos\\DownloadsNew\\readme.txt";
     private String folderpath;
-    private int payload_length = 60000;
+    private String payload_length = "60000";
 
     private byte[] header;
     private byte[] payload;
@@ -54,7 +54,7 @@ public class Client
     public void sendPacket() throws IOException
     {
         packetBuf = createPacketBuffer(header, payload);
-        packetBuf = path.getBytes();
+    //    packetBuf = path.getBytes();
         packet = new DatagramPacket(packetBuf, packetBuf.length, serverAddress, serverPort);
         udpSocket.send(packet);
     }
@@ -177,6 +177,7 @@ public class Client
         //sending folder path name and filename
         header = new byte[1];
         header[0] = 7;
+        payload = new byte[60000];
         payload = path.getBytes(StandardCharsets.UTF_8);
         System.out.print(payload.length);
         sendPacket();
@@ -184,29 +185,36 @@ public class Client
 
 
         //sending payload length
-        header = new byte[1];
-        header[0] = 7;
-        ByteBuffer b = ByteBuffer.allocate(payload_length);
-        b.putInt(payload_length);
-        payload =  b.array();
+        //      header = new byte[1];
+        header[0] = 8;
+        payload = new byte[60000];
+        payload = payload_length.getBytes(StandardCharsets.UTF_8);
+        System.out.print(payload.length);
 
-        String s = StandardCharsets.UTF_8.decode(b).toString();
-        System.out.print("\naaaaaek" + s );
+        //      ByteBuffer b = ByteBuffer.allocate(payload_length);
+        //      b.putInt(payload_length);
+        //      payload =  b.array();
+
+        //       String s = StandardCharsets.UTF_8.decode(b).toString();
+        //       System.out.print("\naaaaaek" + s );
         sendPacket();
         //end of sending payload length
 
 
         //recieving the welcome message
-        header = new byte[1];
-        header[0] = 8;
-        payload = new byte[60000];
+        //     header = new byte[1];
+        //   header[0] = 8;
+        payload = new byte[6000];
 
         recvPacket_withoutTimeOut();
         takeHeader();
         takePayload(packet);
 
-        path = new String(packet.getData(),0, packet.getLength());
-        System.out.print("\n" + path);
+        if (header[0] == 9)
+        {
+             String welcome = new String(packet.getData(), 0, packet.getLength());
+             System.out.print("\n" + welcome + "\n");
+       }
         //end of recieving the welcome message
     }
 

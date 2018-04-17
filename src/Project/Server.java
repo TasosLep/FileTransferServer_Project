@@ -1,5 +1,3 @@
-package Project;
-
 import java.io.*;
 import java.math.BigInteger;
 import java.net.*;
@@ -78,7 +76,10 @@ public class Server
             packetBuf = createPacketBuffer(header, payload);
           //  packetBuf = path.getBytes();
             packet = new DatagramPacket(packetBuf, packetBuf.length);
+
             udpSocket.receive(packet);
+       //     System.out.println("\n" +packet.getData().length + "aek\n");
+
         }catch (SocketTimeoutException ste)
         {
             // The timeout expired so we send the same packet.
@@ -145,7 +146,6 @@ public class Server
             udpSocket = new DatagramSocket(7777);
 
             initiateHandshake();
-            System.out.println("\n" + path);
 
             //int packetNum = 0;
             //boolean flag = false;
@@ -243,7 +243,7 @@ public class Server
 
         header = new byte[1];
        // header[0] = 8;
-        payload = new byte[60000];
+        payload = new byte[6000];
 
         recvPacket_withoutTimeOut();
         takeHeader();
@@ -252,9 +252,10 @@ public class Server
         if (header[0] == 7) {
         //    path = new String(packet.getData(), 0, packet.getLength()) + " from : ";
 
-            path = new String(packet.getData(), 1, packet.getLength()) + " from : ";
+            path = new String(payload, 0, payload.length);
+           // path = new String(payload, 0, packet.getLength());
             path = path.trim();
-            String temp = new String(packet.getData(),"UTF-8");
+        //    String temp = new String(packet.getData(),"UTF-8");
             System.out.print("\n " + path);
 
         }
@@ -264,26 +265,28 @@ public class Server
         //recieving payload length from the user
         header = new byte[1];
  //       header[0] = 8;
-        payload = new byte[60000];
+  //      payload = new byte[55];
 
         recvPacket_withoutTimeOut();
         takeHeader();
         takePayload(packet);
         if (header[0] == 8) {
             //   System.out.println(packet.getLength() + " why\n");
-            String paylen = new String(packet.getData(), 0, packet.getLength());
+            String paylen = new String(payload, 0, payload.length);
             //   System.out.print("whaaaaaaaaaaaaaaat? " + paylen);
             int number = Integer.parseInt(paylen.trim());
-            System.out.print("\n  " + number);
+      //      System.out.print("\n  " + number);
             payload_length = number;
         }
+        else
+            initiateHandshake();
         //end of recieving payload length from the user
 
 
         //send welcome message
-        header = new byte[1];
+     //   header = new byte[1];
         header[0] = 9;
-        payload = new byte[60000];
+     //   payload = new byte[60000];
         String welcome = "Welcome!";
         payload = welcome.getBytes(StandardCharsets.UTF_8);
      //   System.out.print("\n"+payload.length+"\n");

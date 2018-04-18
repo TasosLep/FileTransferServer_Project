@@ -13,7 +13,8 @@ public class Client
     private static int serverPort = 0;          // The server's port
     private FileOutputStream fileOut;           // An output stream to write data
     private DatagramPacket packet;
-    private String path = "C:\\Users\\p3150091\\Downloads\\aek.txt";
+    //private String path = "C:\\Users\\p3150091\\Downloads\\aek.txt";
+    private String path = "F:\\Users\\Kostas\\Videos\\Clips\\Source.mp4";
     private StringBuilder folderpath;
     private String payload_length = "60000";
 
@@ -104,7 +105,8 @@ public class Client
         boolean flag = true, end = false; // Flag is true when we receive a packet out of order.
         try {
             // Initialize the output stream to write the data to the new file
-            fileOut = new FileOutputStream("C:\\Users\\p3150091\\Desktop\\aaaaaaaaaek.txt");
+            //fileOut = new FileOutputStream("C:\\Users\\p3150091\\Desktop\\aaaaaaaaaek.txt");
+            fileOut = new FileOutputStream("D:\\Users\\Kostas\\Desktop\\test.mp4");
             //fileOut = new FileOutputStream("/home/marios/Desktop/test.mkv");
 
             // Create a datagram socket and connect it to the local client machine port

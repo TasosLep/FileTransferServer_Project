@@ -1,3 +1,5 @@
+package Project;
+
 import java.io.*;
 import java.math.BigInteger;
 import java.net.*;
@@ -76,10 +78,7 @@ public class Server
             packetBuf = createPacketBuffer(header, payload);
           //  packetBuf = path.getBytes();
             packet = new DatagramPacket(packetBuf, packetBuf.length);
-
             udpSocket.receive(packet);
-       //     System.out.println("\n" +packet.getData().length + "aek\n");
-
         }catch (SocketTimeoutException ste)
         {
             // The timeout expired so we send the same packet.
@@ -133,111 +132,7 @@ public class Server
         }
     }
 
-    public void initializeServer(int port, InetAddress laddr) throws UnknownHostException
-    {
-
-        // Provide the complete address of the destination of the datagram packet
-        Address = InetAddress.getByName("localhost");
-        Port = Integer.parseInt("7778");
-        try
-        {
-            System.out.println("Server started!");
-            // Create the DatagramSocket through which the server will communicate with the client
-            udpSocket = new DatagramSocket(port, laddr);
-
-            initiateHandshake();
-
-            //int packetNum = 0;
-            //boolean flag = false;
-            fileIn = new FileInputStream(new File(path));
-            //fileIn = new FileInputStream(new File("/home/marios/Programming/cpp_prog/test.cpp"));
-            boolean end = false;
-            header = new byte[1];
-            payload = new byte[payload_length];
-            int packetId = -1;
-
-            while (!end)    // While the end of the file has not been reached
-            {
-                try
-                {
-                    if (!flag)  // If we do not need to retransmit the packet
-                    {
-                        int len = fileIn.read(payload);
-                        if (len == -1)  // If there is no data because the end of the file has been reached
-                            end = true; // Tell it to the client
-                        else
-                        {
-                            /*Adjust the payload length to the exact number of bytes
-                            that were read from the file(always <= payload.length)*/
-                            byte[] temp = new byte[len];
-                            for (int i = 0; i < len; i++)
-                                temp[i] = payload[i];
-                            payload = temp;
-                        }
-                        // Increment the packet id(slide the window)
-                        packetId = (packetId + 1) % 2;
-                    }
-                    // We have a special header for the end of the file.
-                    if (end)
-                        header[0] = 2;  // The client will not recognise it as a packet
-                    else
-                        header[0] = (byte) packetId;
-
-                    // Send the packet.
-                    /*packetBuf = createPacketBuffer(header, payload);
-                    DatagramPacket packet = new DatagramPacket(packetBuf, packetBuf.length, Address, Port);
-                    udpSocket.send(packet);*/
-                    sendPacket();
-                    // Receive the acknowledgement(A header that contains the id of the packet we sent).
-                    recvACK(2);
-                    // If no exception occured.
-                    flag = false;
-                    // Check the header.
-                    if (header[0] != packetId)
-                        flag = true;
-                    // Simulate packet loss.
-                    /*if (Math.random() < 0.5)
-                        flag = true;*/
-
-                } /*catch (SocketTimeoutException ste)
-                {
-                    // The timeout expired so we send the same packet.
-                    flag = true;
-                    System.out.println("Timeout");
-                }*/ catch (IOException ioe)
-                {
-                    System.out.println("IOE");
-                    ioe.printStackTrace();
-
-                }
-            }
-            // If the socket cannot be opened or cannot be bound to the specific port
-        } catch (SocketException se)
-        {
-            System.out.println("We couldn't find a Server");
-            // If the attempt to open the file has failed
-        } catch (FileNotFoundException fnfe)
-        {
-            System.out.println("FNFE");
-
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally
-        {
-            try
-            {
-                //        System.out.print("Whyyy???");
-                fileIn.close();
-            } catch (IOException ioe)
-            {
-                ioe.printStackTrace();
-            }
-        }
-    }
-
-     public void initializeServer() throws UnknownHostException
+    public void initializeServer() throws UnknownHostException
     {
 
         // Provide the complete address of the destination of the datagram packet
@@ -250,6 +145,7 @@ public class Server
             udpSocket = new DatagramSocket(7777);
 
             initiateHandshake();
+       //     System.out.println("\n" + path);
 
             //int packetNum = 0;
             //boolean flag = false;
@@ -257,7 +153,7 @@ public class Server
             //fileIn = new FileInputStream(new File("/home/marios/Programming/cpp_prog/test.cpp"));
             boolean end = false;
             header = new byte[1];
-            payload = new byte[payload_length];
+            payload = new byte[60000];
             int packetId = -1;
 
             while (!end)    // While the end of the file has not been reached
@@ -293,7 +189,7 @@ public class Server
                     udpSocket.send(packet);*/
                     sendPacket();
                     // Receive the acknowledgement(A header that contains the id of the packet we sent).
-                    recvACK(2);
+                    recvPacket(2);
                     // If no exception occured.
                     flag = false;
                     // Check the header.
@@ -347,7 +243,7 @@ public class Server
 
         header = new byte[1];
        // header[0] = 8;
-        payload = new byte[6000];
+        payload = new byte[60000];
 
         recvPacket_withoutTimeOut();
         takeHeader();
@@ -356,10 +252,11 @@ public class Server
         if (header[0] == 7) {
         //    path = new String(packet.getData(), 0, packet.getLength()) + " from : ";
 
+      //      path = new String(packet.getData(), 1, packet.getLength()) + " from : ";
             path = new String(payload, 0, payload.length);
-           // path = new String(payload, 0, packet.getLength());
+
             path = path.trim();
-        //    String temp = new String(packet.getData(),"UTF-8");
+      //      String temp = new String(packet.getData(),"UTF-8");
             System.out.print("\n " + path);
 
         }
@@ -369,31 +266,31 @@ public class Server
         //recieving payload length from the user
         header = new byte[1];
  //       header[0] = 8;
-  //      payload = new byte[55];
+ //       payload = new byte[60000];
 
         recvPacket_withoutTimeOut();
         takeHeader();
         takePayload(packet);
         if (header[0] == 8) {
             //   System.out.println(packet.getLength() + " why\n");
+    //        String paylen = new String(packet.getData(), 0, packet.getLength());
             String paylen = new String(payload, 0, payload.length);
+
             //   System.out.print("whaaaaaaaaaaaaaaat? " + paylen);
             int number = Integer.parseInt(paylen.trim());
       //      System.out.print("\n  " + number);
             payload_length = number;
         }
-        else
-            initiateHandshake();
         //end of recieving payload length from the user
 
 
         //send welcome message
-     //   header = new byte[1];
+   //     header = new byte[1];
         header[0] = 9;
-     //   payload = new byte[60000];
+        payload = new byte[60000];
         String welcome = "Welcome!";
         payload = welcome.getBytes(StandardCharsets.UTF_8);
-     //   System.out.print("\n"+payload.length+"\n");
+  //      System.out.print("\n"+payload.length+"AAAEK\n");
         sendPacket();
         //end of welcome message
 

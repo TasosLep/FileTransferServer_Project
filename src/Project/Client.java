@@ -1,3 +1,5 @@
+package Project;
+
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
@@ -13,9 +15,9 @@ public class Client
     private static int serverPort = 0;          // The server's port
     private FileOutputStream fileOut;           // An output stream to write data
     private DatagramPacket packet;
-    //private String path = "C:\\Users\\p3150091\\Downloads\\aek.txt";
-    private String path = "F:\\Users\\Kostas\\Videos\\Clips\\Source.mp4";
-    private StringBuilder folderpath;
+    private String path = "E:\\Users\\tasos\\Pictures\\AEK\\AEKARA.jpg";
+
+    private String folderpath;
     private String payload_length = "60000";
 
     private byte[] header;
@@ -55,7 +57,6 @@ public class Client
         packetBuf = createPacketBuffer(header, payload);
     //    packetBuf = path.getBytes();
         packet = new DatagramPacket(packetBuf, packetBuf.length, serverAddress, serverPort);
- //       System.out.println(packet.getData().length + "aek\n");
         udpSocket.send(packet);
     }
 
@@ -105,8 +106,7 @@ public class Client
         boolean flag = true, end = false; // Flag is true when we receive a packet out of order.
         try {
             // Initialize the output stream to write the data to the new file
-            //fileOut = new FileOutputStream("C:\\Users\\p3150091\\Desktop\\aaaaaaaaaek.txt");
-            fileOut = new FileOutputStream("D:\\Users\\Kostas\\Desktop\\test.mp4");
+            fileOut = new FileOutputStream("E:\\Users\\tasos\\DesktopNew\\AEK.jpg");
             //fileOut = new FileOutputStream("/home/marios/Desktop/test.mkv");
 
             // Create a datagram socket and connect it to the local client machine port
@@ -166,9 +166,10 @@ public class Client
             try
             {
                 fileOut.close();
+                System.out.println("\nThe file is READY!!!" + "\nYou are exiting the program.");
             } catch (IOException e)
             {
-
+                e.printStackTrace();
             }
         }
     }
@@ -178,9 +179,9 @@ public class Client
         //sending folder path name and filename
         header = new byte[1];
         header[0] = 7;
-  //      payload = new byte[2526];
+     //   payload = new byte[60000];
         payload = path.getBytes(StandardCharsets.UTF_8);
-      //  System.out.print(payload.length);
+     //   System.out.print(payload.length);
         sendPacket();
         //end of sending folder path name and filename
 
@@ -188,10 +189,9 @@ public class Client
         //sending payload length
         //      header = new byte[1];
         header[0] = 8;
-  //      payload = new byte[60000];
+    //    payload = new byte[60000];
         payload = payload_length.getBytes(StandardCharsets.UTF_8);
-    //    System.out.print(payload.length);
-    //    System.out.print(payload.length);
+   //     System.out.print(payload.length);
 
         //      ByteBuffer b = ByteBuffer.allocate(payload_length);
         //      b.putInt(payload_length);
@@ -206,7 +206,7 @@ public class Client
         //recieving the welcome message
         //     header = new byte[1];
         //   header[0] = 8;
-        payload = new byte[6000];
+        payload = new byte[60000];
 
         recvPacket_withoutTimeOut();
         takeHeader();
